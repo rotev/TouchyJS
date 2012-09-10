@@ -146,6 +146,10 @@ function Doat_Env(cfg) {
         return cfg && cfg.isTouch || /^(iphone|ipad|android|nokia|blackberry)$/.test(p);
     };
 
+    this.isRetina = function() {
+        return window.devicePixelRatio > 1;
+    };
+
     this.getInfo = function() {
         if (arguments[0] || !_info){
             var uaStr = (arguments[0] === true) ? undefined : arguments[0];

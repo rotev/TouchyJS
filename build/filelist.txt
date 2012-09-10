@@ -16,6 +16,7 @@ header.js
 ../src/scroll.js
 ../src/plugins/animate.js 
 ../src/plugins/facebook.js           
-../src/viewport.js               
+../src/viewport.js 
+../src/resizer.js              
 ../src/main.js
 footer.js

@@ -42,8 +42,8 @@ function Doat_Main(){
         cfg = {},
         ENABLE_ANALYTICS = (typeof doat_jsa !== 'undefined' && doat_jsa);
 
-    if (typeof doat_config !== 'undefined'){
-        cfg = aug(cfg, doat_config);
+    if (typeof touchyjs_config !== 'undefined'){
+        cfg = aug(cfg, touchyjs_config);
     }
     
     cfg.hasHost = /\sevme\//.test(navigator.userAgent);
@@ -160,7 +160,10 @@ function Doat_Main(){
         
         Viewport = new Doat_Viewport();
         self.Viewport = Viewport;
-		
+
+        // Initialize resizer.
+        self.Resizer = new Doat_Resizer(cfg.resizer);
+        		
         // Event handlers
         $(window).bind('load', function(){
             Messenger.trigger(Doat.Events.WINDOW_LOADED);       

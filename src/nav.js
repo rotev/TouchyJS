@@ -175,9 +175,19 @@ var Doat_Navigation = function(){
 
             setTimeout(function(){
                 $nextElement.animate({'left': '0%'});
-                $currentElement.animate({'left': currentEnd}, function(){
-                    onComplete($nextElement, options);
-                });
+                // $currentElement.animate({'left': currentEnd}, { 
+                //     complete: function(){
+                //         onComplete($nextElement, options);
+                //     }
+                // });
+                $currentElement.animate(
+                    {'left': currentEnd}, 
+                    200,
+                    'ease',
+                    function(){
+                        onComplete($nextElement, options);
+                    }
+                );
             }, 200);
         }
 

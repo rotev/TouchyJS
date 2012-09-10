@@ -241,7 +241,8 @@ function Doat_Scroll(){
         contentClassName = classnamePrefix+'content';
         headerClassName = classnamePrefix+'header';
         contentInnerClassName = classnamePrefix+'scrollable';
-        $contents = $container.children('.'+contentClassName);
+        //$contents = $container.children('.'+contentClassName);
+        $contents = $container.find('.'+contentClassName);
         
         MainObj.Env.addEventListener("orientationChange", calculate);
         
