@@ -27,10 +27,10 @@
  */
 
 /**
-* This class handles resizing of scraped images.
+* This class handles resizing, cropping and sprites of scraped images.
 * @class
 */
-var Doat_Resizer = function(global_cfg) {
+var Doat_Image = function(global_cfg) {
 
     var me = this,
     	base_config = {

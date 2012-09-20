@@ -161,8 +161,8 @@ function Doat_Main(){
         Viewport = new Doat_Viewport();
         self.Viewport = Viewport;
 
-        // Initialize resizer.
-        self.Resizer = new Doat_Resizer(cfg.resizer);
+        // Initialize image manager.
+        self.Image = new Doat_Image(cfg.image);
         		
         // Event handlers
         $(window).bind('load', function(){

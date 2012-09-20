@@ -340,7 +340,19 @@ function Doat_Env(cfg) {
             var data = ["","","",""];
                 
             if (/^(iphone|ipod)$/.test(platform)) {
-                data = [320,416,480,267];
+                var portraitOffset = 64,
+                    landscapeOffset = 53;
+
+
+                // iPhone5 (slightly different resolution).
+                // I chose 550 as a safe number that's greater than 416 and smaller than 640.
+                if (window.innerHeight > 550 || window.innerWidth > 550) {
+                    data = [640,1136 - portraitOffset,1136,640 - landscapeOffset];
+
+                // other iphone/ipod versions.
+                } else {
+                    data = [320,416,480,267];
+                }
             }
             // desktop
             else if (platform == "desktop") {
