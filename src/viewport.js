@@ -45,7 +45,7 @@ var Doat_Viewport = function(){
         // if it's stored in localStorage or should be ignored (in order to retry)
         if (!storedHeight[key]){
             // get screen height from ENV
-            var fixedHeight = Doat.Env.getScreen().height;
+            var fixedHeight = TouchyJS.Env.getScreen().height;
             if (fixedHeight){
                 //set height and store
                 setContainerHeight(fixedHeight, key, _this.ENV, data.callback);

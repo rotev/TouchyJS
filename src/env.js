@@ -52,12 +52,13 @@ function Doat_Env(cfg) {
     var _getPlatform = function(uaStr) {
         var n = '', v = '', m;
         
-        m = /(iphone|ipad)|(android|htc_)|(symbian)|(webos)|(blackberry|playbook|windows phone os)/.exec(uaStr) || [,'desktop'];
+        m = /(iphone|ipad)|(android|htc_)|(symbian)|(webos)|(blackberry|playbook|windows phone os)|(mobile;)/.exec(uaStr) || [,'desktop'];
         n = m[1] ||
             m[2] && 'android' ||
             m[3] && 'nokia'||
             m[4] && 'hp' ||
-            m[5] && '';  
+            m[5] && '' ||
+            m[6] && 'mozilla';
 
         return {
             "name": n,
@@ -68,12 +69,13 @@ function Doat_Env(cfg) {
     var _getOS = function(uaStr) {
         var n = '', v = '', m;
         
-        m = /(iphone|ipad)|(android|htc_)|(symbian|webos)|(blackberry|playbook)|(windows phone os)/.exec(uaStr) || [];
+        m = /(iphone|ipad)|(android|htc_)|(symbian|webos)|(blackberry|playbook)|(windows phone os)|(mobile;)/.exec(uaStr) || [];
         n = m[1] && 'ios' ||
             m[2] && 'android' ||
             m[3] ||
             m[4] && 'blackberry' ||
-            m[5] && 'windowsphoneos';
+            m[5] && 'windowsphoneos' ||
+            m[6] && 'firefoxos';
         
         if (!n){
             m = /(Win32)|(Linux)|(MacIntel)/.exec(navigator.platform) || [];
@@ -346,8 +348,8 @@ function Doat_Env(cfg) {
 
                 // iPhone5 (slightly different resolution).
                 // I chose 550 as a safe number that's greater than 416 and smaller than 640.
-                if (window.innerHeight > 550 || window.innerWidth > 550) {
-                    data = [640,1136 - portraitOffset,1136,640 - landscapeOffset];
+                if (window.screen.height == 568) {
+                    data = [320,568-portraitOffset,568,320-landscapeOffset];
 
                 // other iphone/ipod versions.
                 } else {

@@ -1124,12 +1124,13 @@ function Doat_Env(cfg) {
     var _getPlatform = function(uaStr) {
         var n = '', v = '', m;
         
-        m = /(iphone|ipad)|(android|htc_)|(symbian)|(webos)|(blackberry|playbook|windows phone os)/.exec(uaStr) || [,'desktop'];
+        m = /(iphone|ipad)|(android|htc_)|(symbian)|(webos)|(blackberry|playbook|windows phone os)|(mobile;)/.exec(uaStr) || [,'desktop'];
         n = m[1] ||
             m[2] && 'android' ||
             m[3] && 'nokia'||
             m[4] && 'hp' ||
-            m[5] && '';  
+            m[5] && '' ||
+            m[6] && 'mozilla';
 
         return {
             "name": n,
@@ -1140,12 +1141,13 @@ function Doat_Env(cfg) {
     var _getOS = function(uaStr) {
         var n = '', v = '', m;
         
-        m = /(iphone|ipad)|(android|htc_)|(symbian|webos)|(blackberry|playbook)|(windows phone os)/.exec(uaStr) || [];
+        m = /(iphone|ipad)|(android|htc_)|(symbian|webos)|(blackberry|playbook)|(windows phone os)|(mobile;)/.exec(uaStr) || [];
         n = m[1] && 'ios' ||
             m[2] && 'android' ||
             m[3] ||
             m[4] && 'blackberry' ||
-            m[5] && 'windowsphoneos';
+            m[5] && 'windowsphoneos' ||
+            m[6] && 'firefoxos';
         
         if (!n){
             m = /(Win32)|(Linux)|(MacIntel)/.exec(navigator.platform) || [];
@@ -1412,7 +1414,19 @@ function Doat_Env(cfg) {
             var data = ["","","",""];
                 
             if (/^(iphone|ipod)$/.test(platform)) {
-                data = [320,416,480,267];
+                var portraitOffset = 64,
+                    landscapeOffset = 53;
+
+
+                // iPhone5 (slightly different resolution).
+                // I chose 550 as a safe number that's greater than 416 and smaller than 640.
+                if (window.screen.height == 568) {
+                    data = [320,568-portraitOffset,568,320-landscapeOffset];
+
+                // other iphone/ipod versions.
+                } else {
+                    data = [320,416,480,267];
+                }
             }
             // desktop
             else if (platform == "desktop") {
@@ -2188,7 +2202,8 @@ var Doat_Navigation = function(){
         hashArr = [],
         isCurrentFirstInHistory = false,
         currentHistoryState,
-        historyEnabled;
+        historyEnabled,
+        lastTransition;
 
     var b = mainObj.Env.getInfo().browser.name || mainObj.Env.getInfo().browser;
     CSS_PREFIX = b === 'webkit' ? '-webkit-' : b === 'mozilla' ? '-moz-' : '';
@@ -2238,7 +2253,21 @@ var Doat_Navigation = function(){
         if (!toPage || isNavigating){return false;}
         isNavigating = true;
         
-        var $nextElement = (toPage.constructor === String) ? $('.'+classnamePrefix+'content#'+toPage) : $(toPage);
+        //var $nextElement = (toPage.constructor === String) ? $('.'+classnamePrefix+'content#'+toPage) : $(toPage);
+        var $nextElement = (toPage.constructor === String) ? $('#'+toPage) : $(toPage);
+
+        // detect drawer transition.
+        if ($nextElement.hasClass(classnamePrefix+'drawer')) {
+            options || (options = {});
+            options['transition'] = 'drawer';
+        } 
+        // if it's not a drawer, it must be a content. validate that!
+        else {
+            if (!$nextElement.hasClass(classnamePrefix+'content')) {
+                Doat.Log.error('.'+classnamePrefix+'content classname expected.');
+                return;
+            }
+        }
 
         if (!bNoCallback) {
             onStart($nextElement, options);
@@ -2248,89 +2277,114 @@ var Doat_Navigation = function(){
             onComplete($nextElement, options);
             return false;
         }
-        else if (options && options['transition'] == 'none'){
-            var nextElCss = {
-                'left': '0%',
-                'display': 'block'
-            };
-            nextElCss[CSS_PREFIX+'transition-duration'] = '0';
-            nextElCss[CSS_PREFIX+'transform'] =  'translateX(0)';
-            $nextElement.css(nextElCss);
 
-            var currElCss = {
-                'display': 'none'
-            };
-            
-            if ('outElementStyle' in  options) {
-                for (var k in options['outElementStyle']) {
-                    currElCss[k] = options['outElementStyle'][k];
-                }
-            }
-                        
-            $currentElement.css(currElCss);
+        var control = false;
 
-            onComplete($nextElement, options);
+        // if a previous transition exists, trigger its 'out' action.
+        if (lastTransition) {
+            control = lastTransition.out($nextElement);
+            lastTransition = null;
         }
-        else if (options && options['transition'] == 'fade'){            
-            
-            $currentElement.
-               css('z-index', 2);
-            
-            if (isMobile){
-                $nextElement.css(CSS_PREFIX+'transition-duration', '0');
-                $nextElement.css(CSS_PREFIX+'transform', 'translateX(0)');
-            }
-            else{
-                $nextElement.css('left', 0);
-            }
-            $nextElement.css('display', 'block');
 
-            $currentElement.
-               css(CSS_PREFIX+'transition', 'opacity 0.5s linear').
-               css('opacity', 0);
+        // control = true when the previous transition took control of the current transition.
+        // in this case, no further transitioning is needed.
+        if (!control) {
+            if (options && options['transition'] == 'none'){
+                var nextElCss = {
+                    'left': '0%',
+                    'display': 'block'
+                };
+                nextElCss[CSS_PREFIX+'transition-duration'] = '0';
+                nextElCss[CSS_PREFIX+'transform'] =  'translateX(0)';
+                $nextElement.css(nextElCss);
 
-            setTimeout(function(){
-                $currentElement.
-                    css('display', 'none').
-                    css(CSS_PREFIX+'transition-duration', '0').
-                    css({
-                        'z-index': 1,
-                        'opacity': 1
-                    });
-                 onComplete($nextElement, options);
-            }, 200);
-        }
-        else{
-            var direction = options && options.direction || determineDirection($nextElement),
-                nextStart = (direction === 'rtl') ? '100%' : '-100%',
-                currentEnd = (direction === 'rtl') ? '-100%' : '100%';
-
-            if (isMobile){
-                $nextElement.css(CSS_PREFIX+'transition-duration', '0');
-                $nextElement.css(CSS_PREFIX+'transform', 'translateX('+nextStart+')');
-            }
-            else{
-                $nextElement.css('left', nextStart);
-            }
-            $nextElement.css('display', 'block');
-
-            setTimeout(function(){
-                $nextElement.animate({'left': '0%'});
-                // $currentElement.animate({'left': currentEnd}, { 
-                //     complete: function(){
-                //         onComplete($nextElement, options);
-                //     }
-                // });
-                $currentElement.animate(
-                    {'left': currentEnd}, 
-                    200,
-                    'ease',
-                    function(){
-                        onComplete($nextElement, options);
+                var currElCss = {
+                    'display': 'none'
+                };
+                
+                if ('outElementStyle' in  options) {
+                    for (var k in options['outElementStyle']) {
+                        currElCss[k] = options['outElementStyle'][k];
                     }
-                );
-            }, 200);
-        }
+                }
+                            
+                $currentElement.css(currElCss);
+
+                onComplete($nextElement, options);
+            }
+            else if (options && options['transition'] == 'fade'){            
+                
+                $currentElement.
+                   css('z-index', 2);
+                
+                if (isMobile){
+                    $nextElement.css(CSS_PREFIX+'transition-duration', '0');
+                    $nextElement.css(CSS_PREFIX+'transform', 'translateX(0)');
+                }
+                else{
+                    $nextElement.css('left', 0);
+                }
+                $nextElement.css('display', 'block');
+
+                $currentElement.
+                   css(CSS_PREFIX+'transition', 'opacity 0.5s linear').
+                   css('opacity', 0);
+
+                setTimeout(function(){
+                    $currentElement.
+                        css('display', 'none').
+                        css(CSS_PREFIX+'transition-duration', '0').
+                        css({
+                            'z-index': 1,
+                            'opacity': 1
+                        });
+                     onComplete($nextElement, options);
+                }, 200);
+            }
+            else if (options && options['transition'] == 'drawer') {
+                Doat.Transitions['drawer'].in({
+                    'cssPrefix': CSS_PREFIX,
+                    'config': cfg,
+                    'current': $currentElement,
+                    'next': $nextElement,
+                    'onComplete': function(next) {
+                        onComplete(next, options);
+                    }
+                });
+                lastTransition = Doat.Transitions['drawer'];
+            }
+            else{
+                var direction = options && options.direction || determineDirection($nextElement),
+                    nextStart = (direction === 'rtl') ? '100%' : '-100%',
+                    currentEnd = (direction === 'rtl') ? '-100%' : '100%';
+
+                if (isMobile){
+                    $nextElement.css(CSS_PREFIX+'transition-duration', '0');
+                    $nextElement.css(CSS_PREFIX+'transform', 'translateX('+nextStart+')');
+                }
+                else{
+                    $nextElement.css('left', nextStart);
+                }
+                $nextElement.css('display', 'block');
+
+                setTimeout(function(){
+                    $nextElement.animate({'left': '0%'});
+                    // $currentElement.animate({'left': currentEnd}, { 
+                    //     complete: function(){
+                    //         onComplete($nextElement, options);
+                    //     }
+                    // });
+                    $currentElement.animate(
+                        {'left': currentEnd}, 
+                        200,
+                        'ease',
+                        function(){
+                            onComplete($nextElement, options);
+                        }
+                    );
+                }, 200);
+            }
+        } // /if !control
 
         // If muteEventReport == true, don't continue to reporting the message
         if (!options || options.muteEventReport !== true){
@@ -2453,7 +2507,10 @@ var Doat_Navigation = function(){
         execCallback(options, [nextId, 'oncomplete', 'in']);
             
         if (currId != nextId) {
-            $previousElement.css('display', 'none');            
+            // hide previous element, unless the current element is a drawer.
+            if (!$currentElement.hasClass(classnamePrefix+'drawer')) {
+                $previousElement.css('display', 'none');
+            }
             execCallback(options, [currId, 'oncomplete', 'out']);
         }
         
@@ -2710,6 +2767,138 @@ function Doat_Progress_Indicator(){
     };
 }
 
+
+/* 
+ * Copyright 2011 DoAT. All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without modification, are
+ * permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this list of
+ *      conditions and the following disclaimer.
+ *
+ *   2. Redistributions in binary form must reproduce the above copyright notice, this list
+ *      of conditions and the following disclaimer in the documentation and/or other materials
+ *      provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY Do@ ``AS IS'' AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+ * FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * The views and conclusions contained in the software and documentation are those of the
+ * authors and should not be interpreted as representing official policies, either expressed
+ * or implied, of DoAT.
+ */
+
+/**
+* Providing various methods for transitioning between pages.
+* @class
+*/
+
+var Doat_Transitions = {
+
+    'drawer': function() {
+
+        var $current,
+            $prev,
+            onComplete,
+            drawer_cfg,
+            cssPrefix,
+
+        DRAWER_CFG = {
+            moveBy: "80%", // How much current content and header should move
+            underlay: true, // If the drawer page stays in place or animates in
+            position: "left" // Where the drawer page is located
+        };
+
+        return {
+            'in': function(data) {
+                cssPrefix = data.cssPrefix;
+
+                var config = data.config,
+                    $currentElement = data.current,
+                    $nextElement = data.next;
+
+                drawer_cfg = DRAWER_CFG;
+                if (typeof config['drawer'] !== 'undefined') {
+                    $.extend(drawer_cfg, config['drawer']);
+                }
+
+                // the drawer should come from the left, pushing the current element "moveBy" percents right.
+
+                // place the drawer on the left.
+                $nextElement.css(cssPrefix+'transition', 'none');
+                //$nextElement.css('display', 'block');
+                $nextElement.css(cssPrefix+'transform', 'translateX(-100%)');
+                $nextElement.css({
+                    'width': drawer_cfg.moveBy
+                });
+
+                // animate the drawer to its right position.
+                //$nextElement.css(cssPrefix+'transition', 'transformX 0.3s ease-in-out 0s');
+                $nextElement.animate({ 'left': '0%' });
+
+                // animate the current element to its right position.
+                //$currentElement.css(cssPrefix+'transition', 'all 0.2s');
+                $currentElement.animate({ 'left': drawer_cfg.moveBy });
+
+                // keep those element for the out transition.
+                $current = $nextElement;
+                $prev = $currentElement;
+                onComplete = data.onComplete;
+
+                setTimeout(function() {
+                    onComplete($nextElement);
+                }, 400);
+            },
+
+            'out': function($nextElement) {
+
+                // place the next element at "moveBy".
+                $nextElement.css(cssPrefix + 'transition', 'none');
+                $nextElement.css(cssPrefix + 'transform', 'translateX(' + drawer_cfg.moveBy + ')');
+                $nextElement.css({
+                    'display': 'block'
+                });
+
+                if ($nextElement.attr('id') !== $prev.attr('id')) {
+                    // hide previous element. we don't need it anymore.
+                    $prev.css(cssPrefix + 'transition', 'none');
+                    $prev.css(cssPrefix + 'transform', 'translateX(100%)');
+                }
+
+                setTimeout(function() {
+
+                    // animate next element to its right position.
+                    $nextElement.css(cssPrefix + 'transition', 'all 0.2s');
+                    $nextElement.animate({'left': '0px'});
+
+                    // animate the drawer.
+                    $current.animate({'left': '-100%'});
+
+                    setTimeout(function() {
+                        onComplete($nextElement);
+
+                        $next = null;
+                        $prev = null;
+                        onComplete = null;
+                        drawer_cfg = null;
+                    }, 400);
+
+                }, 0);
+
+                // let the parent know that we took control over the current transition as well.
+                return true;
+            }
+        }
+    }()
+};
 
 /*
 * Copyright 2011 DoAT. All rights reserved.
@@ -4819,7 +5008,7 @@ var Doat_Viewport = function(){
         // if it's stored in localStorage or should be ignored (in order to retry)
         if (!storedHeight[key]){
             // get screen height from ENV
-            var fixedHeight = Doat.Env.getScreen().height;
+            var fixedHeight = TouchyJS.Env.getScreen().height;
             if (fixedHeight){
                 //set height and store
                 setContainerHeight(fixedHeight, key, _this.ENV, data.callback);
@@ -4960,10 +5149,10 @@ var Doat_Viewport = function(){
  */
 
 /**
-* This class handles resizing of scraped images.
+* This class handles resizing, cropping and sprites of scraped images.
 * @class
 */
-var Doat_Resizer = function(global_cfg) {
+var Doat_Image = function(global_cfg) {
 
     var me = this,
     	base_config = {
@@ -5110,6 +5299,10 @@ function Doat_Main(){
     Env = new Doat_Env();
     this.Env = this.Environment = Env;
 
+    // and its transitions:
+    Transitions = Doat_Transitions;
+    this.Transitions = Transitions;
+
     envInfo = Env.getInfo();
 
     // Stretches viewport in mobile browsers
@@ -5208,8 +5401,8 @@ function Doat_Main(){
         Viewport = new Doat_Viewport();
         self.Viewport = Viewport;
 
-        // Initialize resizer.
-        self.Resizer = new Doat_Resizer(cfg.resizer);
+        // Initialize image manager.
+        self.Image = new Doat_Image(cfg.image);
         		
         // Event handlers
         $(window).bind('load', function(){

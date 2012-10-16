@@ -47,7 +47,8 @@ var Doat_Navigation = function(){
         hashArr = [],
         isCurrentFirstInHistory = false,
         currentHistoryState,
-        historyEnabled;
+        historyEnabled,
+        lastTransition;
 
     var b = mainObj.Env.getInfo().browser.name || mainObj.Env.getInfo().browser;
     CSS_PREFIX = b === 'webkit' ? '-webkit-' : b === 'mozilla' ? '-moz-' : '';
@@ -97,7 +98,21 @@ var Doat_Navigation = function(){
         if (!toPage || isNavigating){return false;}
         isNavigating = true;
         
-        var $nextElement = (toPage.constructor === String) ? $('.'+classnamePrefix+'content#'+toPage) : $(toPage);
+        //var $nextElement = (toPage.constructor === String) ? $('.'+classnamePrefix+'content#'+toPage) : $(toPage);
+        var $nextElement = (toPage.constructor === String) ? $('#'+toPage) : $(toPage);
+
+        // detect drawer transition.
+        if ($nextElement.hasClass(classnamePrefix+'drawer')) {
+            options || (options = {});
+            options['transition'] = 'drawer';
+        } 
+        // if it's not a drawer, it must be a content. validate that!
+        else {
+            if (!$nextElement.hasClass(classnamePrefix+'content')) {
+                Doat.Log.error('.'+classnamePrefix+'content classname expected.');
+                return;
+            }
+        }
 
         if (!bNoCallback) {
             onStart($nextElement, options);
@@ -107,89 +122,114 @@ var Doat_Navigation = function(){
             onComplete($nextElement, options);
             return false;
         }
-        else if (options && options['transition'] == 'none'){
-            var nextElCss = {
-                'left': '0%',
-                'display': 'block'
-            };
-            nextElCss[CSS_PREFIX+'transition-duration'] = '0';
-            nextElCss[CSS_PREFIX+'transform'] =  'translateX(0)';
-            $nextElement.css(nextElCss);
 
-            var currElCss = {
-                'display': 'none'
-            };
-            
-            if ('outElementStyle' in  options) {
-                for (var k in options['outElementStyle']) {
-                    currElCss[k] = options['outElementStyle'][k];
-                }
-            }
-                        
-            $currentElement.css(currElCss);
+        var control = false;
 
-            onComplete($nextElement, options);
+        // if a previous transition exists, trigger its 'out' action.
+        if (lastTransition) {
+            control = lastTransition.out($nextElement);
+            lastTransition = null;
         }
-        else if (options && options['transition'] == 'fade'){            
-            
-            $currentElement.
-               css('z-index', 2);
-            
-            if (isMobile){
-                $nextElement.css(CSS_PREFIX+'transition-duration', '0');
-                $nextElement.css(CSS_PREFIX+'transform', 'translateX(0)');
-            }
-            else{
-                $nextElement.css('left', 0);
-            }
-            $nextElement.css('display', 'block');
 
-            $currentElement.
-               css(CSS_PREFIX+'transition', 'opacity 0.5s linear').
-               css('opacity', 0);
+        // control = true when the previous transition took control of the current transition.
+        // in this case, no further transitioning is needed.
+        if (!control) {
+            if (options && options['transition'] == 'none'){
+                var nextElCss = {
+                    'left': '0%',
+                    'display': 'block'
+                };
+                nextElCss[CSS_PREFIX+'transition-duration'] = '0';
+                nextElCss[CSS_PREFIX+'transform'] =  'translateX(0)';
+                $nextElement.css(nextElCss);
 
-            setTimeout(function(){
-                $currentElement.
-                    css('display', 'none').
-                    css(CSS_PREFIX+'transition-duration', '0').
-                    css({
-                        'z-index': 1,
-                        'opacity': 1
-                    });
-                 onComplete($nextElement, options);
-            }, 200);
-        }
-        else{
-            var direction = options && options.direction || determineDirection($nextElement),
-                nextStart = (direction === 'rtl') ? '100%' : '-100%',
-                currentEnd = (direction === 'rtl') ? '-100%' : '100%';
-
-            if (isMobile){
-                $nextElement.css(CSS_PREFIX+'transition-duration', '0');
-                $nextElement.css(CSS_PREFIX+'transform', 'translateX('+nextStart+')');
-            }
-            else{
-                $nextElement.css('left', nextStart);
-            }
-            $nextElement.css('display', 'block');
-
-            setTimeout(function(){
-                $nextElement.animate({'left': '0%'});
-                // $currentElement.animate({'left': currentEnd}, { 
-                //     complete: function(){
-                //         onComplete($nextElement, options);
-                //     }
-                // });
-                $currentElement.animate(
-                    {'left': currentEnd}, 
-                    200,
-                    'ease',
-                    function(){
-                        onComplete($nextElement, options);
+                var currElCss = {
+                    'display': 'none'
+                };
+                
+                if ('outElementStyle' in  options) {
+                    for (var k in options['outElementStyle']) {
+                        currElCss[k] = options['outElementStyle'][k];
                     }
-                );
-            }, 200);
-        }
+                }
+                            
+                $currentElement.css(currElCss);
+
+                onComplete($nextElement, options);
+            }
+            else if (options && options['transition'] == 'fade'){            
+                
+                $currentElement.
+                   css('z-index', 2);
+                
+                if (isMobile){
+                    $nextElement.css(CSS_PREFIX+'transition-duration', '0');
+                    $nextElement.css(CSS_PREFIX+'transform', 'translateX(0)');
+                }
+                else{
+                    $nextElement.css('left', 0);
+                }
+                $nextElement.css('display', 'block');
+
+                $currentElement.
+                   css(CSS_PREFIX+'transition', 'opacity 0.5s linear').
+                   css('opacity', 0);
+
+                setTimeout(function(){
+                    $currentElement.
+                        css('display', 'none').
+                        css(CSS_PREFIX+'transition-duration', '0').
+                        css({
+                            'z-index': 1,
+                            'opacity': 1
+                        });
+                     onComplete($nextElement, options);
+                }, 200);
+            }
+            else if (options && options['transition'] == 'drawer') {
+                Doat.Transitions['drawer'].in({
+                    'cssPrefix': CSS_PREFIX,
+                    'config': cfg,
+                    'current': $currentElement,
+                    'next': $nextElement,
+                    'onComplete': function(next) {
+                        onComplete(next, options);
+                    }
+                });
+                lastTransition = Doat.Transitions['drawer'];
+            }
+            else{
+                var direction = options && options.direction || determineDirection($nextElement),
+                    nextStart = (direction === 'rtl') ? '100%' : '-100%',
+                    currentEnd = (direction === 'rtl') ? '-100%' : '100%';
+
+                if (isMobile){
+                    $nextElement.css(CSS_PREFIX+'transition-duration', '0');
+                    $nextElement.css(CSS_PREFIX+'transform', 'translateX('+nextStart+')');
+                }
+                else{
+                    $nextElement.css('left', nextStart);
+                }
+                $nextElement.css('display', 'block');
+
+                setTimeout(function(){
+                    $nextElement.animate({'left': '0%'});
+                    // $currentElement.animate({'left': currentEnd}, { 
+                    //     complete: function(){
+                    //         onComplete($nextElement, options);
+                    //     }
+                    // });
+                    $currentElement.animate(
+                        {'left': currentEnd}, 
+                        200,
+                        'ease',
+                        function(){
+                            onComplete($nextElement, options);
+                        }
+                    );
+                }, 200);
+            }
+        } // /if !control
 
         // If muteEventReport == true, don't continue to reporting the message
         if (!options || options.muteEventReport !== true){
@@ -312,7 +352,10 @@ var Doat_Navigation = function(){
         execCallback(options, [nextId, 'oncomplete', 'in']);
             
         if (currId != nextId) {
-            $previousElement.css('display', 'none');            
+            // hide previous element, unless the current element is a drawer.
+            if (!$currentElement.hasClass(classnamePrefix+'drawer')) {
+                $previousElement.css('display', 'none');
+            }
             execCallback(options, [currId, 'oncomplete', 'out']);
         }
         
