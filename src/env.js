@@ -342,13 +342,12 @@ function Doat_Env(cfg) {
             var data = ["","","",""];
                 
             if (/^(iphone|ipod)$/.test(platform)) {
-                var portraitOffset = 64,
-                    landscapeOffset = 53;
-
-
                 // iPhone5 (slightly different resolution).
                 // I chose 550 as a safe number that's greater than 416 and smaller than 640.
                 if (window.screen.height == 568) {
+                    var portraitOffset = 64,
+                        landscapeOffset = 53;
+
                     data = [320,568-portraitOffset,568,320-landscapeOffset];
 
                 // other iphone/ipod versions.

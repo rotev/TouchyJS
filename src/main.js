@@ -63,10 +63,6 @@ function Doat_Main(){
     Env = new Doat_Env();
     this.Env = this.Environment = Env;
 
-    // and its transitions:
-    Transitions = Doat_Transitions;
-    this.Transitions = Transitions;
-
     envInfo = Env.getInfo();
 
     // Stretches viewport in mobile browsers

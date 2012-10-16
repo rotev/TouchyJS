@@ -10,7 +10,6 @@ header.js
 ../src/events.js
 ../src/plugins/spin.js
 ../src/nav.js
-../src/transitions.js
 ../src/tmls/searchbar.js
 ../src/tmls/slider.js 
 ../src/tmls/swiper.js 
