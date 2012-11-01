@@ -1,7 +1,7 @@
 var Doat_Viewport = function(){
     var _this = this, _name = "Viewport",
         $container, currentSource,
-        styleEl = {},
+        styleEl = {}, // what is this for?
         testHeight = {
             "portrait": 560,
             "landscape": 340
@@ -29,10 +29,12 @@ var Doat_Viewport = function(){
         
         storedHeight = getStoredHeight() || {};
     };
-       
+
     this.setHeight = function(data){
         // get current orientation (portrait/landscape)
-        var key = getOrientationKey();        
+        var key = getOrientationKey();
+
+        // make sure data is defined, even if empty.
         !data && (data = {});
         
         if (styleEl[key]) {
@@ -42,10 +44,15 @@ var Doat_Viewport = function(){
             return false;
         }
         
-        // if it's stored in localStorage or should be ignored (in order to retry)
-        if (!storedHeight[key]){
+        // If we already calculated the height, just set it.
+        if (storedHeight[key]){
+            setContainerHeight(storedHeight[key], key, _this.STORAGE, data.callback);
+
+        // otherwise, calculate the height and then set it.
+        } else {
             // get screen height from ENV
             var fixedHeight = TouchyJS.Env.getScreen().height;
+            fixedHeight = 0; // temp rotev
             if (fixedHeight){
                 //set height and store
                 setContainerHeight(fixedHeight, key, _this.ENV, data.callback);
@@ -63,11 +70,8 @@ var Doat_Viewport = function(){
                 // wait for it to hide
                 setTimeout(function(){
                     setDelayedHeight(key, data.callback);
-                }, 2000); // minimum time it takes the browser to move the address bar up and get innerHeight right
+                }, 500); // minimum time it takes the browser to move the address bar up and get innerHeight right
             }
-        } else {
-            //set height
-            setContainerHeight(storedHeight[key], key, _this.STORAGE, data.callback);
         }
 
         return true;
@@ -101,8 +105,11 @@ var Doat_Viewport = function(){
     }
     
     function setDelayedHeight(key, cb){
-        // make sure it's not under minimum height (happens if keyboard is up)
-        if (window.innerHeight >= minHeight[key]){
+        // make sure it's not below the minimum height (happens if the keyboard is up),
+        // and that the address bar has moved.
+        var scrollTop = ('scrollTop' in window) ? window.scrollTop : window.scrollY;
+
+        if (window.innerHeight >= minHeight[key] && scrollTop){
             //set height and store
             setContainerHeight(window.innerHeight, key, _this.DETECTED, cb);
             setStoredHeight(key, window.innerHeight);
@@ -111,7 +118,7 @@ var Doat_Viewport = function(){
         else{
             setTimeout(function(){
                 setDelayedHeight(key, cb);
-            }, 1000);
+            }, 200);
         }
     }
     
