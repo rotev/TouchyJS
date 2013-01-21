@@ -38,7 +38,7 @@
 function Doat_Main(){
     var self = this,
         $document, head = document.getElementsByTagName('HEAD')[0],
-        Messenger, DOML, Env, Navigation, Searchbar, Scroll, Slider, Swiper, envInfo, Extractor, Storage, Viewport,
+        Messenger, DOML, Env, Navigation, Searchbar, Scroll, Slider, Swiper, envInfo, Extractor, Storage, Viewport, //NativeLink,
         cfg = {},
         ENABLE_ANALYTICS = (typeof doat_jsa !== 'undefined' && doat_jsa);
 
@@ -163,6 +163,9 @@ function Doat_Main(){
 
         // Initialize image manager.
         self.Image = new Doat_Image(cfg.image);
+
+        // NativeLink = new Doat_Native_Link(cfg.nativeLink);
+        // self.NativeLink = NativeLink;
         		
         // Event handlers
         $(window).bind('load', function(){

@@ -18,5 +18,6 @@ header.js
 ../src/plugins/facebook.js           
 ../src/viewport.js 
 ../src/image.js              
+../src/native_link.js
 ../src/main.js
 footer.js
