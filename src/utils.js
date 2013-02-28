@@ -224,3 +224,22 @@ var objectEqual = function(x, y)
 
   return true;
 }
+
+function extractConfig(cfg, extended) {
+
+    if (typeof extended !== 'undefined'){
+        cfg = aug(cfg, extended);
+    }
+
+    if (cfg['os']) {
+      // OS specific configuration:
+      // if cfg contains os specific configuration for the current OS, override the default configuration with it.
+      var os = Doat.Env.getInfo().os.name;
+      
+      if (cfg['os'].hasOwnProperty(os)) {
+        cfg = aug(cfg, cfg['os'][os]);
+      }
+    }
+
+    return cfg;
+}

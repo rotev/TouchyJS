@@ -39,12 +39,14 @@ function Doat_Main(){
     var self = this,
         $document, head = document.getElementsByTagName('HEAD')[0],
         Messenger, DOML, Env, Navigation, Searchbar, Scroll, Slider, Swiper, envInfo, Extractor, Storage, Viewport, //NativeLink,
-        cfg = {},
-        ENABLE_ANALYTICS = (typeof doat_jsa !== 'undefined' && doat_jsa);
 
-    if (typeof touchyjs_config !== 'undefined'){
-        cfg = aug(cfg, touchyjs_config);
-    }
+        // default configuration
+        cfg = {
+            'hideAddressBar': true,
+            'setHeight': true
+        },
+
+        ENABLE_ANALYTICS = (typeof doat_jsa !== 'undefined' && doat_jsa);
     
     cfg.hasHost = /\sevme\//.test(navigator.userAgent);
 
@@ -53,6 +55,19 @@ function Doat_Main(){
     this.openLink = openLink;
     this.getSearchQuery = getSearchQuery;
     this.visible = this.focused = false;
+
+    // utility function for accessing and updating Touchy's configuration.
+    this.config = function(key, value) {
+
+        if (typeof value !== 'undefined') {
+            cfg[key] = value;
+            return this;
+        } else if (typeof key == 'undefined') {
+            return cfg;
+        } else {
+            return cfg[key];
+        }
+    };
 
     this.Log = new Logger();
 
@@ -94,6 +109,8 @@ function Doat_Main(){
 
     function init(){
         $document = $(document);
+
+        cfg = extractConfig(cfg, touchyjs_config || {});
 
         // DOML
         DOML = new Doat_DOML();

@@ -30,7 +30,13 @@ var Doat_Viewport = function(){
         storedHeight = getStoredHeight() || {};
     };
 
-    this.setHeight = function(data){
+    this.setHeight = function(data){ 
+
+        // allow disabling setHeight from config.
+        if (!Doat.config('setHeight')) {
+            return;
+        }
+
         // get current orientation (portrait/landscape)
         var key = getOrientationKey();
 
@@ -52,7 +58,6 @@ var Doat_Viewport = function(){
         } else {
             // get screen height from ENV
             var fixedHeight = TouchyJS.Env.getScreen().height;
-            fixedHeight = 0; // temp rotev
             if (fixedHeight){
                 //set height and store
                 setContainerHeight(fixedHeight, key, _this.ENV, data.callback);
@@ -85,9 +90,12 @@ var Doat_Viewport = function(){
     };
     
     this.hideAddressBar = function(){
-        window.setTimeout(function(){
-            window.scrollTo(0, 1);
-        }, 0);
+
+        if (window.TouchyJS.config('hideAddressBar')) {
+            window.setTimeout(function(){
+                window.scrollTo(0, 1);
+            }, 0);
+        }
     };
     
     this.shouldRecalculate = function(val){

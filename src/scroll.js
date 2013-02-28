@@ -260,15 +260,18 @@ function Doat_Scroll(){
     };
     
     function hideAddressBar(){
-        document.body.removeEventListener('touchstart', hideAddressBar);
-        var currentContent = MainObj.Nav.getCurrent();
-        $(currentContent).css('height', window.screen && window.screen.availHeight+'px' || '1000px');
-             
-        window.scrollTo(0,0);
-        
-        setTimeout(function(){
-            self.refreshAll();    
-        }, 1000);
+
+        if (MainObj.config('hideAddressBar')) {
+          document.body.removeEventListener('touchstart', hideAddressBar);
+          var currentContent = MainObj.Nav.getCurrent();
+          $(currentContent).css('height', window.screen && window.screen.availHeight+'px' || '1000px');
+               
+          window.scrollTo(0,0);
+          
+          setTimeout(function(){
+              self.refreshAll();    
+          }, 1000);          
+        }
     }
 
     function calculate($contents){

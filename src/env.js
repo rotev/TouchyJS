@@ -145,7 +145,7 @@ function Doat_Env(cfg) {
 
     this.isMobile = function(uaStr){
         var p = self.getInfo(uaStr).platform.name;
-        return cfg && cfg.isTouch || /^(iphone|ipad|android|nokia|blackberry)$/.test(p);
+        return cfg && cfg.isTouch || /^(iphone|ipad|android|nokia|blackberry|mozilla)$/.test(p);
     };
 
     this.isRetina = function() {
